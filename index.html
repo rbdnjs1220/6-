@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>창법 감상 & 한 줄 평</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  /* 모달 */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: #1a1a1a; border: 0.5px solid #333; border-radius: 16px; padding: 2rem; width: 300px; text-align: center; }
+  .modal h2 { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+  .modal p { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+  .modal input { width: 100%; background: #111; border: 0.5px solid #333; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #fff; font-family: inherit; outline: none; margin-bottom: 1rem; text-align: center; }
+  .modal input:focus { border-color: #1db954; }
+  .modal-btn { width: 100%; background: #1db954; color: #000; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* 페이지 */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* 활동 1 - 뮤직 플레이어 */
+  .page-subtitle { font-size: 13px; color: #666; text-align: center; margin-bottom: 2rem; line-height: 1.6; }
+
+  /* 트랙 네비 */
+  .track-nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 2rem; }
+  .track-nav-btn { font-size: 12px; padding: 6px 14px; border-radius: 20px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-family: inherit; transition: all 0.2s; position: relative; }
+  .track-nav-btn.active { background: #fff; border-color: #fff; color: #000; font-weight: 600; }
+  .track-nav-btn.done::after { content: '✓'; position: absolute; top: -5px; right: -5px; font-size: 10px; background: #1db954; color: #000; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+  /* 트랙 정보 */
+  .track-info { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .track-text { flex: 1; }
+  .track-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .track-artist { font-size: 14px; color: #888; }
+  .heart-btn { width: 36px; height: 36px; border: none; background: none; color: #555; font-size: 22px; cursor: pointer; transition: color 0.2s; flex-shrink: 0; }
+  .heart-btn.liked { color: #1db954; }
+
+  /* 프로그레스바 */
+  .progress-wrap { width: 100%; margin-bottom: 1.25rem; }
+  .progress-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; margin-bottom: 8px; position: relative; }
+  .progress-fill { height: 100%; border-radius: 2px; background: #fff; position: relative; transition: width 0.1s; }
+  .progress-fill::after { content: ''; position: absolute; right: -4px; top: -4px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+  .progress-time { display: flex; justify-content: space-between; font-size: 11px; color: #666; }
+
+  /* 컨트롤 */
+  .controls { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .ctrl-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; padding: 5px; transition: color 0.15s; line-height: 1; }
+  .ctrl-btn:hover { color: #fff; }
+  .play-btn { width: 44px; height: 44px; border-radius: 50%; background: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #000; transition: transform 0.1s; box-shadow: 0 4px 20px rgba(255,255,255,0.15); }
+  .play-btn:hover { transform: scale(1.05); }
+
+  /* 감상하기 링크 */
+
+  /* 가사 */
+  .lyrics-toggle-btn { background: none; border: 1px solid #2a2a2a; border-radius: 20px; color: #666; font-size: 12px; padding: 5px 14px; cursor: pointer; font-family: inherit; transition: all 0.15s; margin-bottom: 1.25rem; display: block; margin-left: auto; margin-right: auto; }
+  .lyrics-toggle-btn:hover { border-color: #555; color: #aaa; }
+  .lyrics-wrap { width: 100%; background: #111; border: 0.5px solid #222; border-radius: 12px; padding: 16px; margin-bottom: 1.5rem; display: none; }
+  .lyrics-wrap.open { display: block; }
+  .lyrics-line { margin-bottom: 12px; }
+  .lyrics-line:last-child { margin-bottom: 0; }
+  .lyrics-original { font-size: 14px; color: #fff; line-height: 1.6; margin-bottom: 3px; }
+  .lyrics-translation { font-size: 12px; color: #666; line-height: 1.5; }
+
+  /* 구분선 */
+  .divider { width: 100%; height: 0.5px; background: #222; margin-bottom: 1.5rem; }
+
+  /* 키워드 */
+  .section-title { font-size: 12px; font-weight: 700; color: #666; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 1.25rem; }
+  .keyword-category { margin-bottom: 1.25rem; }
+  .category-label { font-size: 11px; color: #555; margin-bottom: 8px; letter-spacing: 0.3px; }
+  .keywords { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .keyword-btn { font-size: 12px; padding: 5px 8px; border-radius: 20px; border: 1px solid #2a2a2a; background: transparent; color: #888; cursor: pointer; transition: all 0.15s; font-family: inherit; user-select: none; text-align: center; }
+  .keyword-btn:hover { border-color: #555; color: #ccc; }
+  .keyword-btn.selected { background: #1db954; border-color: #1db954; color: #000; font-weight: 600; }
+
+  /* etc 버튼 */
+  .etc-btn { border-style: dashed !important; }
+  .etc-input-wrap { width: 100%; margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+  .etc-input { flex: 1; background: #111; border: 0.5px solid #333; border-radius: 20px; padding: 6px 14px; font-size: 12px; color: #fff; font-family: inherit; outline: none; }
+  .etc-input:focus { border-color: #1db954; }
+  .etc-confirm-btn { background: #1db954; color: #000; border: none; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+  /* 저장 */
+  .save-btn { width: 100%; background: #1db954; color: #000; border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 1.5rem; transition: background 0.15s; }
+  .save-btn:hover { background: #1ed760; }
+  .saved-wrap { width: 100%; margin-top: 1.5rem; background: #111; border: 0.5px solid #222; border-radius: 12px; padding: 14px; display: none; }
+  .saved-wrap.visible { display: block; }
+  .saved-label { font-size: 11px; color: #555; letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase; }
+  .saved-keywords { display: flex; flex-wrap: wrap; gap: 5px; }
+  .saved-keyword { font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #1db95420; color: #1db954; border: 1px solid #1db95440; font-weight: 600; }
+  .edit-kw-btn { font-size: 12px; color: #555; background: none; border: none; cursor: pointer; padding: 8px 0 0; display: block; font-family: inherit; }
+  .edit-kw-btn:hover { color: #888; }
+
+  /* 다음 활동 버튼 */
+  .next-activity-btn { width: 100%; background: transparent; color: #1db954; border: 1px solid #1db954; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 12px; transition: all 0.15s; display: none; }
+  .next-activity-btn:hover { background: #1db954; color: #000; }
+  .next-activity-btn.visible { display: block; }
+
+  /* 활동 2 */
+  .activity2-header { text-align: center; margin-bottom: 2rem; }
+  .activity2-title { font-size: 20px; font-weight: 700; margin-bottom: 0.4rem; }
+  .activity2-subtitle { font-size: 13px; color: #666; line-height: 1.6; }
+
+  .review-card { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .review-card-header { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 0.5px solid #2a2a2a; }
+  .review-emoji { font-size: 20px; }
+  .review-track-info { flex: 1; }
+  .review-track-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .review-track-artist { font-size: 11px; color: #666; }
+  .review-listen-btn { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid #333; background: transparent; color: #666; text-decoration: none; transition: all 0.15s; flex-shrink: 0; }
+  .review-listen-btn:hover { border-color: #1db954; color: #1db954; }
+
+  .kw-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .kw-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: #1db95420; color: #1db954; border: 1px solid #1db95440; }
+
+  .review-label { font-size: 11px; font-weight: 600; color: #555; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
+  .review-textarea { width: 100%; background: #111; border: 0.5px solid #2a2a2a; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #fff; font-family: inherit; resize: none; outline: none; line-height: 1.5; transition: border-color 0.15s; min-height: 70px; margin-bottom: 10px; }
+  .review-textarea:focus { border-color: #1db954; }
+  .review-textarea::placeholder { color: #333; }
+  .post-btn { width: 100%; background: #1db954; color: #000; border: none; border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .post-btn:hover { background: #1ed760; }
+  .posted-area { display: none; padding-top: 10px; border-top: 0.5px solid #2a2a2a; margin-top: 10px; }
+  .posted-label { font-size: 11px; font-weight: 600; color: #1db954; margin-bottom: 6px; }
+  .posted-text { font-size: 13px; color: #ddd; font-style: italic; line-height: 1.6; margin-bottom: 8px; }
+  .revert-btn { font-size: 12px; color: #555; background: none; border: 1px solid #333; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-family: inherit; }
+  .revert-btn:hover { color: #aaa; border-color: #555; }
+
+  /* 교사 */
+  .teacher-entry { text-align: center; margin-top: 2.5rem; }
+  .teacher-btn { font-size: 12px; color: #444; background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline; }
+  .teacher-btn:hover { color: #888; }
+  .back-btn { font-size: 13px; color: #888; background: none; border: 1px solid #333; border-radius: 20px; padding: 6px 14px; cursor: pointer; font-family: inherit; margin-bottom: 1.5rem; display: inline-block; }
+  .back-btn:hover { color: #fff; border-color: #555; }
+  .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab-btn { font-size: 13px; padding: 8px 16px; border-radius: 20px; border: 1px solid #333; background: transparent; color: #888; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .tab-btn.active { background: #fff; border-color: #fff; color: #000; font-weight: 700; }
+  .board { display: none; }
+  .board.active { display: block; }
+  .board-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 0.5px solid #2a2a2a; }
+  .board-emoji { font-size: 24px; }
+  .board-info { flex: 1; }
+  .board-title { font-size: 16px; font-weight: 700; color: #fff; }
+  .board-artist { font-size: 12px; color: #666; }
+  .board-count { font-size: 12px; color: #1db954; font-weight: 600; }
+  .reviews-list { display: flex; flex-direction: column; gap: 10px; }
+  .review-item { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 14px 16px; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .review-name { font-size: 12px; font-weight: 600; color: #1db954; margin-bottom: 4px; }
+  .review-text { font-size: 14px; color: #ddd; font-style: italic; line-height: 1.6; }
+  .review-time { font-size: 11px; color: #444; margin-top: 4px; }
+  .empty-msg { text-align: center; color: #444; font-size: 14px; padding: 3rem 0; }
+
+  /* 비교 질문 */
+  .compare-question { width: 100%; background: #1a1a1a; border: 1px solid #1db95440; border-radius: 12px; padding: 12px 16px; font-size: 13px; color: #1db954; line-height: 1.6; margin-top: 1rem; display: none; }
+</style>
+</head>
+<body>
+
+<!-- 이름 모달 -->
+<div class="modal-overlay" id="name-modal">
+  <div class="modal">
+    <h2>🎵 안녕하세요!</h2>
+    <p>이름을 입력하고 시작해주세요.</p>
+    <input type="text" id="name-input" placeholder="이름 입력" maxlength="10" />
+    <button class="modal-btn" id="name-btn">시작하기</button>
+  </div>
+</div>
+
+<!-- 비밀번호 모달 -->
+<div class="modal-overlay hidden" id="pw-modal">
+  <div class="modal">
+    <h2>🔒 교사 페이지</h2>
+    <p>비밀번호를 입력해주세요.</p>
+    <input type="password" id="pw-input" placeholder="비밀번호" />
+    <button class="modal-btn" id="pw-btn">확인</button>
+  </div>
+</div>
+
+<!-- 활동 1 -->
+<div class="page active" id="page-activity1">
+  <div class="track-nav">
+    <button class="track-nav-btn active" data-idx="0">🌸 춘향</button>
+    <button class="track-nav-btn" data-idx="1">⚔️ 항우</button>
+    <button class="track-nav-btn" data-idx="2">🌺 우희</button>
+  </div>
+
+  <!-- 트랙 정보 -->
+  <div class="track-info">
+    <div class="track-text">
+      <div class="track-title" id="track-title">쑥대머리</div>
+      <div class="track-artist" id="track-artist">춘향 — 판소리 〈춘향가〉</div>
+    </div>
+    <button class="heart-btn" id="heart-btn" onclick="toggleHeart()">♡</button>
+  </div>
+
+  <!-- 프로그레스 -->
+  <div class="progress-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:35%"></div>
+    </div>
+    <div class="progress-time">
+      <span id="time-current">0:20</span>
+      <span id="time-total">3:47</span>
+    </div>
+  </div>
+
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <button class="ctrl-btn">⇄</button>
+    <button class="ctrl-btn" id="prev-btn">⏮</button>
+    <button class="play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+    <button class="ctrl-btn" id="next-ctrl-btn">⏭</button>
+    <button class="ctrl-btn">↻</button>
+  </div>
+
+
+  <!-- 가사 -->
+  <button class="lyrics-toggle-btn" id="lyrics-toggle-btn" onclick="toggleLyrics()">📄 가사 보기</button>
+  <div class="lyrics-wrap" id="lyrics-wrap"></div>
+
+  <div class="divider"></div>
+
+  <!-- 키워드 -->
+  <div class="section-title">가사에 담긴 시대적 맥락을 떠올리며 세 곡을 감상하고 키워드를 골라보세요.</div>
+  <div class="keyword-category">
+    <div class="category-label">시대적 맥락</div>
+    <div class="keywords" id="keywords-context"></div>
+  </div>
+  <div class="keyword-category">
+    <div class="category-label">소리의 특징 &amp; 감정의 전달</div>
+    <div class="keywords" id="keywords-sound"></div>
+  </div>
+
+  <!-- 비교 질문 (우희일 때) -->
+  <div class="compare-question" id="compare-question">
+    🎵 항우와 우희의 소리는 어떻게 다른가요? 짝과 이야기 나눠봅시다.
+  </div>
+
+  <!-- 저장 -->
+  <button class="save-btn" onclick="saveKeywords()">선택 저장하기</button>
+  <div class="saved-wrap" id="saved-wrap">
+    <div class="saved-label">선택한 키워드</div>
+    <div class="saved-keywords" id="saved-keywords-display"></div>
+    <button class="edit-kw-btn" onclick="editKeywords()">다시 선택하기</button>
+  </div>
+
+  <button class="next-activity-btn" id="next-activity-btn">✍️ 활동 2 — 한 줄 평 쓰러 가기</button>
+</div>
+
+<!-- 활동 2 -->
+<div class="page" id="page-activity2">
+  <div class="activity2-header">
+    <div class="activity2-title">✍️ 활동 2</div>
+    <div class="activity2-subtitle">가장 인상 깊었던 곡 하나를 골라<br>음악 평론가로서 한 줄 평을 남겨보세요.</div>
+  </div>
+  <div id="review-cards"></div>
+  <div class="teacher-entry">
+    <button class="teacher-btn" id="teacher-entry-btn">교사 페이지</button>
+  </div>
+</div>
+
+<!-- 교사 페이지 -->
+<div class="page" id="page-teacher">
+  <div class="activity2-header">
+    <div class="activity2-title">📋 교사 게시판</div>
+    <div class="activity2-subtitle">학생들의 한 줄 평을 실시간으로 확인하세요.</div>
+  </div>
+  <button class="back-btn" id="back-btn">← 학생 페이지로</button>
+  <div class="tabs">
+    <button class="tab-btn active" data-track="sukdaemerri">🌸 쑥대머리</button>
+    <button class="tab-btn" data-track="haehaga">⚔️ 해하가</button>
+    <button class="tab-btn" data-track="hwahae">🌺 화해하가</button>
+  </div>
+  <div class="board active" id="board-sukdaemerri">
+    <div class="board-header"><span class="board-emoji">🌸</span><div class="board-info"><div class="board-title">쑥대머리</div><div class="board-artist">춘향 — 판소리 〈춘향가〉</div></div><span class="board-count" id="count-sukdaemerri">0개</span></div>
+    <div class="reviews-list" id="list-sukdaemerri"><div class="empty-msg">아직 게시된 평론이 없어요.</div></div>
+  </div>
+  <div class="board" id="board-haehaga">
+    <div class="board-header"><span class="board-emoji">⚔️</span><div class="board-info"><div class="board-title">해하가 (垓下歌)</div><div class="board-artist">항우 — 경극 〈패왕별희〉</div></div><span class="board-count" id="count-haehaga">0개</span></div>
+    <div class="reviews-list" id="list-haehaga"><div class="empty-msg">아직 게시된 평론이 없어요.</div></div>
+  </div>
+  <div class="board" id="board-hwahae">
+    <div class="board-header"><span class="board-emoji">🌺</span><div class="board-info"><div class="board-title">화해하가 (和垓下歌)</div><div class="board-artist">우희 — 경극 〈패왕별희〉</div></div><span class="board-count" id="count-hwahae">0개</span></div>
+    <div class="reviews-list" id="list-hwahae"><div class="empty-msg">아직 게시된 평론이 없어요.</div></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const app = initializeApp({ databaseURL: "https://sns-activity-default-rtdb.asia-southeast1.firebasedatabase.app/" });
+  const db = getDatabase(app);
+
+  const TRACKS = [
+    {
+      key: 'sukdaemerri', emoji: '🌸', title: '쑥대머리', artist: '춘향 — 판소리 〈춘향가〉',
+      url: 'https://www.youtube.com/watch?v=q-vul9lQJSw&t=0s', time: ['0:20', '3:47'], progress: 35,
+      context: ['조선시대', '신분제', '수청 거부', '초한전쟁', '사면초가'],
+      sound: ['거칠다', '힘차다', '굵다', '가늘다', '부드럽다', '섬세하다'],
+      emotion: ['그리움', '절망', '기다림', '비장함', '체념', '안타까움'],
+      lyrics: [
+        { original: '쑥대머리 귀신형용', translation: '머리카락이 쑥대처럼 헝클어지고 몰골이 귀신 같고' },
+        { original: '적막옥방의 찬 자리에', translation: '쓸쓸하고 고요한 감옥 방의 차가운 자리에 앉아' },
+        { original: '생각 난 것이 임 뿐이라', translation: '떠오르는 건 오직 당신뿐이야' },
+        { original: '보고지고 보고지고 한양 낭군을 보고지고', translation: '보고 싶다, 한양에 있는 내 임을 보고 싶어' },
+      ]
+    },
+    {
+      key: 'haehaga', emoji: '⚔️', title: '해하가 (垓下歌)', artist: '항우 — 경극 〈패왕별희〉',
+      url: 'https://www.youtube.com/watch?v=f0D_MsRonn0&t=4545s', time: ['0:30', '2:31'], progress: 28,
+      context: ['초한전쟁', '사면초가', '전쟁의 패배', '신분제', '수청 거부'],
+      sound: ['웅장하다', '굵다', '힘차다', '가늘다', '애절하다', '섬세하다'],
+      emotion: ['절망', '체념', '비장함', '그리움', '기다림', '안타까움'],
+      lyrics: [
+        { original: '力拔山兮氣蓋世 (역발산혜기개세)', translation: '힘은 산을 뽑을 만하고, 기운은 세상을 덮을 만한데' },
+        { original: '時不利兮騅不逝 (시불이혜추불서)', translation: '때가 불리하여, 오추마는 나아가지 않는구나' },
+        { original: '騅不逝兮可奈何 (추불서혜가내하)', translation: '오추마가 달리지 않으니, 이를 어찌 할 것인가' },
+        { original: '虞兮虞兮奈若何 (우혜우혜내약하)', translation: '우희야, 우희야, 이를 어찌한단 말이냐?' },
+      ]
+    },
+    {
+      key: 'hwahae', emoji: '🌺', title: '화해하가 (和垓下歌)', artist: '우희 — 경극 〈패왕별희〉',
+      url: 'https://www.youtube.com/watch?v=f0D_MsRonn0&t=5361s', time: ['0:20', '2:05'], progress: 22,
+      context: ['초한전쟁', '사면초가', '전쟁의 패배', '신분제', '조선시대'],
+      sound: ['가늘다', '부드럽다', '섬세하다', '굵다', '힘차다', '웅장하다'],
+      emotion: ['슬픔', '체념', '애절함', '비장함', '그리움', '기다림'],
+      lyrics: [
+        { original: '漢兵已略地 (한병이략지)', translation: '한나라 군사들이 이미 우리 땅을 다 차지했고,' },
+        { original: '四方楚歌聲 (사방초가성)', translation: '사방에서는 초나라의 슬픈 노래가 들려오네.' },
+        { original: '大王意氣盡 (대왕의기진)', translation: '대왕의 그 당당하던 의기와 기세가 다하셨으니,' },
+        { original: '賤妾何聊生 (천첩하료생)', translation: '천한 첩이 어찌 구차하게 더 살기를 바라겠습니까.' },
+      ]
+    }
+  ];
+
+  let myName = '';
+  let currentTrack = 0;
+  let isPlaying = false;
+  let isHearted = [false, false, false];
+  const selectedKw = [{ context: [], sound: [], emotion: [] }, { context: [], sound: [], emotion: [] }, { context: [], sound: [], emotion: [] }];
+  const customKw = [{ context: '', sound: '', emotion: '' }, { context: '', sound: '', emotion: '' }, { context: '', sound: '', emotion: '' }];
+  const savedState = [false, false, false];
+  const myKeys = {};
+
+  function escapeHtml(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // 이름
+  document.getElementById('name-btn').addEventListener('click', function() {
+    const val = document.getElementById('name-input').value.trim();
+    if (!val) { document.getElementById('name-input').focus(); return; }
+    myName = val;
+    document.getElementById('name-modal').classList.add('hidden');
+    renderTrack(0);
+    renderReviewCards();
+  });
+  document.getElementById('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('name-btn').click(); });
+
+  // 트랙 렌더링
+  function renderTrack(idx) {
+    currentTrack = idx;
+    const t = TRACKS[idx];
+
+    document.getElementById('track-title').textContent = t.title;
+    document.getElementById('track-artist').textContent = t.artist;
+    document.getElementById('time-current').textContent = t.time[0];
+    document.getElementById('time-total').textContent = t.time[1];
+    document.getElementById('progress-fill').style.width = t.progress + '%';
+
+    const heartBtn = document.getElementById('heart-btn');
+    heartBtn.textContent = isHearted[idx] ? '♥' : '♡';
+    heartBtn.classList.toggle('liked', isHearted[idx]);
+
+    isPlaying = false;
+    document.getElementById('play-btn').textContent = '▶';
+
+    // 가사 초기화
+    const lyricsWrap = document.getElementById('lyrics-wrap');
+    const lyricsBtn = document.getElementById('lyrics-toggle-btn');
+    lyricsWrap.classList.remove('open');
+    lyricsBtn.textContent = '📄 가사 보기';
+    lyricsWrap.innerHTML = t.lyrics.map(l => `<div class="lyrics-line"><div class="lyrics-original">${l.original}</div><div class="lyrics-translation">${l.translation}</div></div>`).join('');
+
+    // 비교 질문
+    document.getElementById('compare-question').style.display = idx === 2 ? 'block' : 'none';
+
+    // 네비 업데이트
+    document.querySelectorAll('.track-nav-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === idx);
+      btn.classList.toggle('done', savedState[i] && i !== idx);
+    });
+
+    renderKeywords(idx);
+
+    // 저장 상태 복원
+    const savedWrap = document.getElementById('saved-wrap');
+    const saveBtn = document.querySelector('.save-btn');
+    if (savedState[idx]) {
+      savedWrap.classList.add('visible');
+      saveBtn.style.display = 'none';
+      const allKw = [...selectedKw[idx].context, ...selectedKw[idx].sound];
+      document.getElementById('saved-keywords-display').innerHTML = allKw.map(k => `<span class="saved-keyword">#${k}</span>`).join('');
+    } else {
+      savedWrap.classList.remove('visible');
+      saveBtn.style.display = 'block';
+    }
+
+    // 다음 활동 버튼
+    const nextBtn = document.getElementById('next-activity-btn');
+    if (savedState.every(s => s)) {
+      nextBtn.classList.add('visible');
+    } else {
+      nextBtn.classList.remove('visible');
+    }
+  }
+
+  function renderKeywords(idx) {
+    const t = TRACKS[idx];
+    const cats = [
+      { id: 'keywords-context', key: 'context', data: t.context },
+      { id: 'keywords-sound', key: 'sound', data: [...t.sound, ...t.emotion] },
+    ];
+    cats.forEach(({ id, key, data }) => {
+      const container = document.getElementById(id);
+      container.innerHTML = data.map(kw => `
+        <button class="keyword-btn ${selectedKw[idx][key].includes(kw) ? 'selected' : ''}" data-cat="${key}" data-kw="${kw}">${kw}</button>
+      `).join('') + `<button class="keyword-btn etc-btn" data-cat="${key}">+ 기타</button>`;
+
+      container.querySelectorAll('.keyword-btn:not(.etc-btn)').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const cat = this.dataset.cat;
+          const kw = this.dataset.kw;
+          if (this.classList.contains('selected')) {
+            this.classList.remove('selected');
+            selectedKw[idx][cat] = selectedKw[idx][cat].filter(k => k !== kw);
+          } else {
+            this.classList.add('selected');
+            selectedKw[idx][cat].push(kw);
+          }
+        });
+      });
+
+      container.querySelector('.etc-btn').addEventListener('click', function() {
+        if (container.querySelector('.etc-input-wrap')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'etc-input-wrap';
+        wrap.style.gridColumn = '1 / -1';
+        wrap.innerHTML = `<input class="etc-input" placeholder="직접 입력..." maxlength="10" /><button class="etc-confirm-btn">추가</button>`;
+        container.appendChild(wrap);
+        wrap.querySelector('.etc-input').focus();
+        wrap.querySelector('.etc-confirm-btn').addEventListener('click', function() {
+          const val = wrap.querySelector('.etc-input').value.trim();
+          if (!val) return;
+          selectedKw[idx][key].push(val);
+          const newBtn = document.createElement('button');
+          newBtn.className = 'keyword-btn selected';
+          newBtn.dataset.cat = key;
+          newBtn.dataset.kw = val;
+          newBtn.textContent = val;
+          newBtn.addEventListener('click', function() {
+            this.classList.toggle('selected');
+            if (!this.classList.contains('selected')) {
+              selectedKw[idx][key] = selectedKw[idx][key].filter(k => k !== val);
+            } else {
+              selectedKw[idx][key].push(val);
+            }
+          });
+          container.insertBefore(newBtn, container.querySelector('.etc-btn'));
+          wrap.remove();
+        });
+        wrap.querySelector('.etc-input').addEventListener('keydown', e => {
+          if (e.key === 'Enter') wrap.querySelector('.etc-confirm-btn').click();
+        });
+      });
+
+      if (customKw[idx][key]) {
+        const existing = container.querySelector(`[data-kw="${customKw[idx][key]}"]`);
+        if (!existing) {
+          const newBtn = document.createElement('button');
+          newBtn.className = 'keyword-btn' + (selectedKw[idx][key].includes(customKw[idx][key]) ? ' selected' : '');
+          newBtn.dataset.cat = key;
+          newBtn.dataset.kw = customKw[idx][key];
+          newBtn.textContent = customKw[idx][key];
+          container.insertBefore(newBtn, container.querySelector('.etc-btn'));
+        }
+      }
+    });
+  }
+
+  window.togglePlay = function() {
+    isPlaying = !isPlaying;
+    document.getElementById('play-btn').textContent = isPlaying ? '⏸' : '▶';
+  };
+
+  window.toggleHeart = function() {
+    isHearted[currentTrack] = !isHearted[currentTrack];
+    const btn = document.getElementById('heart-btn');
+    btn.textContent = isHearted[currentTrack] ? '♥' : '♡';
+    btn.classList.toggle('liked', isHearted[currentTrack]);
+  };
+
+  window.toggleLyrics = function() {
+    const wrap = document.getElementById('lyrics-wrap');
+    const btn = document.getElementById('lyrics-toggle-btn');
+    wrap.classList.toggle('open');
+    btn.textContent = wrap.classList.contains('open') ? '📄 가사 닫기' : '📄 가사 보기';
+  };
+
+  window.saveKeywords = function() {
+    const allKw = [...selectedKw[currentTrack].context, ...selectedKw[currentTrack].sound];
+    if (allKw.length === 0) { alert('키워드를 하나 이상 선택해주세요!'); return; }
+    savedState[currentTrack] = true;
+    document.getElementById('saved-keywords-display').innerHTML = allKw.map(k => `<span class="saved-keyword">#${k}</span>`).join('');
+    document.getElementById('saved-wrap').classList.add('visible');
+    document.querySelector('.save-btn').style.display = 'none';
+    document.querySelectorAll('.track-nav-btn')[currentTrack].classList.add('done');
+    if (savedState.every(s => s)) {
+      document.getElementById('next-activity-btn').classList.add('visible');
+      renderReviewCards();
+    }
+  };
+
+  window.editKeywords = function() {
+    savedState[currentTrack] = false;
+    document.getElementById('saved-wrap').classList.remove('visible');
+    document.querySelector('.save-btn').style.display = 'block';
+    document.getElementById('next-activity-btn').classList.remove('visible');
+    document.querySelectorAll('.track-nav-btn')[currentTrack].classList.remove('done');
+  };
+
+  // 트랙 네비
+  document.querySelectorAll('.track-nav-btn').forEach((btn, i) => {
+    btn.addEventListener('click', function() { renderTrack(i); });
+  });
+
+  // 전후 버튼
+  document.getElementById('prev-btn').addEventListener('click', function() {
+    if (currentTrack > 0) renderTrack(currentTrack - 1);
+  });
+  document.getElementById('next-ctrl-btn').addEventListener('click', function() {
+    if (currentTrack < 2) renderTrack(currentTrack + 1);
+  });
+
+  // 활동 2로
+  document.getElementById('next-activity-btn').addEventListener('click', function() {
+    document.getElementById('page-activity1').classList.remove('active');
+    document.getElementById('page-activity2').classList.add('active');
+  });
+
+  // 활동 2 렌더링
+  function renderReviewCards() {
+    const container = document.getElementById('review-cards');
+    container.innerHTML = TRACKS.map((t, idx) => {
+      const allKw = [...selectedKw[idx].context, ...selectedKw[idx].sound];
+      return `
+        <div class="review-card">
+          <div class="review-card-header">
+            <span class="review-emoji">${t.emoji}</span>
+            <div class="review-track-info">
+              <div class="review-track-title">${t.title}</div>
+              <div class="review-track-artist">${t.artist}</div>
+            </div>
+            <a class="review-listen-btn" href="${t.url}" target="_blank">▶ 감상</a>
+          </div>
+          ${allKw.length > 0 ? `<div class="kw-badges">${allKw.map(k => `<span class="kw-badge">#${k}</span>`).join('')}</div>` : ''}
+          <div class="review-label">한 줄 평</div>
+          <textarea class="review-textarea" id="review-${idx}" placeholder="음악 평론가로서 한 줄 평을 남겨보세요..."></textarea>
+          <button class="post-btn" id="post-btn-${idx}">게시하기</button>
+          <div class="posted-area" id="posted-area-${idx}">
+            <div class="posted-label">✓ 게시 완료</div>
+            <div class="posted-text" id="posted-text-${idx}"></div>
+            <button class="revert-btn" id="revert-btn-${idx}">수정하기</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    TRACKS.forEach((t, idx) => {
+      document.getElementById('post-btn-' + idx).addEventListener('click', function() {
+        if (!myName) { alert('이름을 먼저 입력해주세요!'); return; }
+        const text = document.getElementById('review-' + idx).value.trim();
+        if (!text) { alert('한 줄 평을 입력해주세요!'); return; }
+
+        document.getElementById('review-' + idx).style.display = 'none';
+        this.style.display = 'none';
+        document.getElementById('posted-text-' + idx).textContent = '"' + text + '"';
+        document.getElementById('posted-area-' + idx).style.display = 'block';
+
+        const allKw = [...selectedKw[idx].context, ...selectedKw[idx].sound];
+        const data = { name: myName, review: text, keywords: allKw, timestamp: Date.now() };
+        push(ref(db, 'reviews/' + t.key), data)
+          .then(r => { myKeys[idx] = r.key; })
+          .catch(e => console.error(e));
+      });
+
+      document.getElementById('revert-btn-' + idx).addEventListener('click', function() {
+        if (myKeys[idx]) {
+          remove(ref(db, 'reviews/' + t.key + '/' + myKeys[idx]));
+          myKeys[idx] = null;
+        }
+        document.getElementById('posted-area-' + idx).style.display = 'none';
+        document.getElementById('review-' + idx).style.display = 'block';
+        document.getElementById('review-' + idx).value = '';
+        document.getElementById('post-btn-' + idx).style.display = 'block';
+      });
+    });
+  }
+
+  // 교사 페이지
+  document.getElementById('teacher-entry-btn').addEventListener('click', function() {
+    document.getElementById('pw-modal').classList.remove('hidden');
+    document.getElementById('pw-input').value = '';
+    setTimeout(() => document.getElementById('pw-input').focus(), 100);
+  });
+  document.getElementById('pw-btn').addEventListener('click', function() {
+    if (document.getElementById('pw-input').value === '1234') {
+      document.getElementById('pw-modal').classList.add('hidden');
+      document.getElementById('page-activity2').classList.remove('active');
+      document.getElementById('page-teacher').classList.add('active');
+    } else {
+      alert('비밀번호가 틀렸습니다.');
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  });
+  document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pw-btn').click(); });
+  document.getElementById('back-btn').addEventListener('click', function() {
+    document.getElementById('page-teacher').classList.remove('active');
+    document.getElementById('page-activity2').classList.add('active');
+  });
+
+  // 탭
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const track = this.dataset.track;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.board').forEach(b => b.classList.toggle('active', b.id === 'board-' + track));
+    });
+  });
+
+  // 실시간 게시판
+  ['sukdaemerri', 'haehaga', 'hwahae'].forEach(track => {
+    onValue(ref(db, 'reviews/' + track), snapshot => {
+      const list = document.getElementById('list-' + track);
+      const count = document.getElementById('count-' + track);
+      if (!snapshot.exists()) {
+        list.innerHTML = '<div class="empty-msg">아직 게시된 평론이 없어요.</div>';
+        count.textContent = '0개';
+        return;
+      }
+      const reviews = [];
+      snapshot.forEach(child => reviews.push(Object.assign({ id: child.key }, child.val())));
+      reviews.sort((a, b) => a.timestamp - b.timestamp);
+      count.textContent = reviews.length + '개';
+      list.innerHTML = reviews.map(r => `
+        <div class="review-item">
+          <div class="review-name">${escapeHtml(r.name)}</div>
+          <div class="review-text">"${escapeHtml(r.review)}"</div>
+          <div class="review-time">${new Date(r.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+      `).join('');
+    });
+  });
+</script>
+</body>
+</html>
